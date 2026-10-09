@@ -5,3 +5,4 @@ node_modules/
 go-api/app
 *.db
 .env
+go-api/go-api
