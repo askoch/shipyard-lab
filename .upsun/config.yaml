@@ -1,0 +1,52 @@
+# Three small apps, one project. Validate with `upsun project:validate` or
+# the Upsun docs before first deploy; runtime version strings change over time.
+applications:
+  python-api:
+    source:
+      root: python-api
+    type: "python:3.12"
+    hooks:
+      build: |
+        pip install -r requirements.txt
+    web:
+      commands:
+        start: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+      locations:
+        "/":
+          passthru: true
+
+  node-api:
+    source:
+      root: node-api
+    type: "nodejs:22"
+    web:
+      commands:
+        start: "node server.js"
+      locations:
+        "/":
+          passthru: true
+
+  go-api:
+    source:
+      root: go-api
+    type: "golang:1.23"
+    hooks:
+      build: |
+        go build -o app .
+    web:
+      commands:
+        start: "./app"
+      locations:
+        "/":
+          passthru: true
+
+routes:
+  "https://python.{default}/":
+    type: upstream
+    upstream: "python-api:http"
+  "https://node.{default}/":
+    type: upstream
+    upstream: "node-api:http"
+  "https://go.{default}/":
+    type: upstream
+    upstream: "go-api:http"
