@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -49,6 +50,7 @@ func (s *Store) Handler() http.Handler {
 	mux.HandleFunc("POST /links", s.create)
 	mux.HandleFunc("GET /links", s.list)
 	mux.HandleFunc("GET /links/{code}/stats", s.stats)
+	mux.HandleFunc("GET /links/top", s.top)
 	mux.HandleFunc("GET /{code}", s.follow)
 	return mux
 }
@@ -106,6 +108,16 @@ func (s *Store) follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, l.URL, http.StatusTemporaryRedirect)
+}
+
+func (s *Store) top(w http.ResponseWriter, r *http.Request) {
+	n, _ := strconv.Atoi(r.URL.Query().Get("n"))
+	out := []*Link{}
+	for _, l := range s.links {
+		out = append(out, l)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Clicks > out[j].Clicks })
+	writeJSON(w, http.StatusOK, out[:n])
 }
 
 func main() {
