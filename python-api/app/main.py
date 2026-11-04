@@ -9,6 +9,8 @@ app = FastAPI(title="shipyard-lab python-api")
 
 LINKS: dict[str, dict] = {}
 ALPHABET = string.ascii_letters + string.digits
+# Codes that collide with fixed top-level routes and must never be generated.
+RESERVED_CODES = {"healthz"}
 
 
 class NewLink(BaseModel):
@@ -22,7 +24,7 @@ def make_code() -> str:
 @app.post("/links", status_code=201)
 def create_link(body: NewLink):
     code = make_code()
-    while code in LINKS:
+    while code in LINKS or code in RESERVED_CODES:
         code = make_code()
     LINKS[code] = {"code": code, "url": body.url, "clicks": 0}
     return LINKS[code]
@@ -39,6 +41,12 @@ def link_stats(code: str):
     if link is None:
         raise HTTPException(status_code=404, detail="not found")
     return link
+
+
+# Must stay above the "/{code}" catch-all, or it would be shadowed.
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 
 @app.get("/{code}")
