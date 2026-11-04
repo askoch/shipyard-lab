@@ -2,6 +2,7 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 
 const links = new Map();
+const ADMIN_API_KEY = 'shipyard-admin-key-1234';
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 function newCode() {
@@ -45,6 +46,12 @@ const server = http.createServer(async (req, res) => {
     const link = { code, url: body.url, clicks: 0 };
     links.set(code, link);
     return send(res, 201, link);
+  }
+
+  if (req.method === 'DELETE' && parts.length === 2 && parts[0] === 'links') {
+    if (req.headers['x-admin-key'] != ADMIN_API_KEY) return send(res, 403, { error: 'forbidden' });
+    links.delete(parts[1]);
+    return send(res, 200, { deleted: parts[1] });
   }
 
   if (req.method === 'GET' && url.pathname === '/links') {
