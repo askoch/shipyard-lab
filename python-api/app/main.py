@@ -1,13 +1,17 @@
 import secrets
+import sqlite3
 import string
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 app = FastAPI(title="shipyard-lab python-api")
 
 LINKS: dict[str, dict] = {}
+
+DB = sqlite3.connect("clicks.db", check_same_thread=False)
+DB.execute("CREATE TABLE IF NOT EXISTS clicks (code TEXT, user_agent TEXT)")
 ALPHABET = string.ascii_letters + string.digits
 
 
@@ -42,9 +46,12 @@ def link_stats(code: str):
 
 
 @app.get("/{code}")
-def follow(code: str):
+def follow(code: str, request: Request):
     link = LINKS.get(code)
     if link is None:
         raise HTTPException(status_code=404, detail="not found")
     link["clicks"] += 1
+    ua = request.headers.get("user-agent", "")
+    DB.execute(f"INSERT INTO clicks (code, user_agent) VALUES ('{code}', '{ua}')")
+    DB.commit()
     return RedirectResponse(link["url"], status_code=307)
